@@ -45,7 +45,7 @@ from six.moves import queue
 RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms
 
-utterances = ["sure", "okay...", "uh-huh...", "mhmm...", "go on...", "I see..."]
+utterances = ["sure", "okay...", "uh-huh...", "alright, yeah...", "go on...", "I see..."]
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
