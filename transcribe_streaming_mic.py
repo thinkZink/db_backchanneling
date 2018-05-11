@@ -34,6 +34,9 @@ import sys
 import random
 import subprocess
 
+from gtts import gTTS
+import os
+
 from google.cloud import speech
 from google.cloud.speech import enums
 from google.cloud.speech import types
@@ -46,6 +49,7 @@ RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms
 
 utterances = ["sure", "okay...", "uh-huh...", "alright, yeah...", "go on...", "I see..."]
+last_recorded_phrase = ""
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
@@ -143,6 +147,7 @@ def listen_print_loop(responses):
 
         # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
+        last_recorded_phrase = transcript
 
         # Display interim results, but with a carriage return at the end of the
         # line, so subsequent lines will overwrite them.
@@ -169,8 +174,14 @@ def listen_print_loop(responses):
 
             num_chars_printed = 0
 
-def say(text):
-    subprocess.call(['say', text])
+def keyword_repeat(text):
+    print (transcript)
+
+def say(text_resp):
+    #subprocess.call(['say', text])
+    tts_response = gTTS(text=text_resp, lang='en')
+    tts_response.save("resp_file.mp3")
+    os.system("play resp_file.mp3")
 
 def main():
     # See http://g.co/cloud/speech/docs/languages
