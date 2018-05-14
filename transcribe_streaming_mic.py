@@ -37,6 +37,8 @@ import subprocess
 from gtts import gTTS
 import os
 
+import psycopg2 #for connecting to postgres database
+
 from google.cloud import speech
 from google.cloud.speech import enums
 from google.cloud.speech import types
@@ -50,6 +52,15 @@ CHUNK = int(RATE / 10)  # 100ms
 
 utterances = ["sure", "okay...", "uh-huh...", "alright, yeah...", "go on...", "I see..."]
 last_recorded_phrase = ""
+
+#connect to database
+conn = psycopg2.connect("dbname=cars user=sydneyzink")
+cur = conn.cursor()
+
+#for now, just collect all words in the database single table for recognition
+cur.execute("SELECT * FROM cars_table;")
+lists_of_tableline_words = cur.fetchall()
+print (lists_of_tableline_words)
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
