@@ -52,6 +52,7 @@ CHUNK = int(RATE / 10)  # 100ms
 
 utterances = ["sure", "okay...", "uh-huh...", "alright, yeah...", "go on...", "I see..."]
 last_recorded_phrase = ""
+utterance_choice = ""
 
 #connect to database
 conn = psycopg2.connect("dbname=cars user=sydneyzink")
@@ -63,8 +64,10 @@ lists_of_tableline_words = cur.fetchall()
 list_all_words = []
 for list_of_words in lists_of_tableline_words:
     list_all_words += list_of_words
-list_all_wordstrings = [str(i) for i in list_all_words]
+list_all_wordstrings = [str(i).lower() for i in list_all_words]
 list_all_wordstrings = list(set(list_all_wordstrings))
+#put in some dummy words for now so I can keep using the same audio clip instead of car talk
+list_all_wordstrings = ["maui", "president", "sanctuary", "island"]
 print (list_all_wordstrings)
 
 class MicrophoneStream(object):
@@ -163,7 +166,29 @@ def listen_print_loop(responses):
 
         # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
-        last_recorded_phrase = transcript
+        last_recorded_phrase = transcript.lower()
+        last_recorded_phrase = last_recorded_phrase.encode("utf-8")
+        last_recorded_phrase = last_recorded_phrase.split()
+        print (last_recorded_phrase)
+        print (set(list_all_wordstrings))
+
+        std_resp = ""
+        if (len(set(last_recorded_phrase).intersection(set(list_all_wordstrings)))):
+            overlap = set(last_recorded_phrase).intersection(set(list_all_wordstrings))
+            overlap = list(overlap)
+            print (overlap)
+            std_resp = "Sure,"
+            ind = 0
+            while (ind < len(overlap)):
+                std_resp = std_resp + " " + str(overlap[ind]) + " "
+                ind += 1
+                if (ind+1 < len(overlap)):
+                    std_resp += "and "
+                else:
+                    std_resp += ", "
+            print(std_resp)
+
+
 
         # Display interim results, but with a carriage return at the end of the
         # line, so subsequent lines will overwrite them.
@@ -190,11 +215,13 @@ def listen_print_loop(responses):
 
             num_chars_printed = 0
 
+    return std_resp
+
 def keyword_repeat(text):
     print (transcript)
 
 def say(text_resp):
-    #subprocess.call(['say', text])
+    #subprocess.call(['say', text_resp])
     tts_response = gTTS(text=text_resp, lang='en')
     tts_response.save("resp_file.mp3")
     os.system("play resp_file.mp3")
@@ -214,8 +241,9 @@ def main():
         single_utterance=True,
         interim_results=False)
     i = 0
-    while (i < 5):
+    while (i < 7):
         with MicrophoneStream(RATE, CHUNK) as stream:
+            utterance_choice = ""
             print("in stream")
             audio_generator = stream.generator()
             requests = (types.StreamingRecognizeRequest(audio_content=content)
@@ -225,9 +253,10 @@ def main():
 
             # Now, put the transcription responses to use.
             #while(True):
-            listen_print_loop(responses)
+            prepend = listen_print_loop(responses)
+            print ("prepend: " + prepend)
             utterance_index = random.randint(0, len(utterances)-1)
-            utterance_choice = utterances[utterance_index]
+            utterance_choice += (" " + prepend + utterances[utterance_index])
             say(utterance_choice)
         i+=1
 
