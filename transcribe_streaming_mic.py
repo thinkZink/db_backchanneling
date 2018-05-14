@@ -60,7 +60,12 @@ cur = conn.cursor()
 #for now, just collect all words in the database single table for recognition
 cur.execute("SELECT * FROM cars_table;")
 lists_of_tableline_words = cur.fetchall()
-print (lists_of_tableline_words)
+list_all_words = []
+for list_of_words in lists_of_tableline_words:
+    list_all_words += list_of_words
+list_all_wordstrings = [str(i) for i in list_all_words]
+list_all_wordstrings = list(set(list_all_wordstrings))
+print (list_all_wordstrings)
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
