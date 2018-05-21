@@ -39,6 +39,9 @@ import os
 
 import psycopg2 #for connecting to postgres database
 
+from word2number import w2n #currently the STT will output "four" and it won't align with the database's "4"
+from num2words import num2words #might be easier to just convert the db recognition bank instead of every STT utterance
+
 from google.cloud import speech
 from google.cloud.speech import enums
 from google.cloud.speech import types
@@ -50,7 +53,7 @@ from six.moves import queue
 RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms
 
-utterances = ["sure", "okay...", "uh-huh...", "alright, yeah...", "go on...", "I see..."]
+utterances = ["sure", "okay...", "great...", "alright, yeah...", "go on...", "got it", "I see..."]
 last_recorded_phrase = ""
 utterance_choice = ""
 
@@ -66,9 +69,10 @@ for list_of_words in lists_of_tableline_words:
     list_all_words += list_of_words
 list_all_wordstrings = [str(i).lower() for i in list_all_words]
 list_all_wordstrings = list(set(list_all_wordstrings))
+
 #put in some dummy words for now so I can keep using the same audio clip instead of car talk
-list_all_wordstrings = ["maui", "president", "sanctuary", "island"]
-print (list_all_wordstrings)
+#list_all_wordstrings = ["maui", "president", "sanctuary", "island"]
+#print (list_all_wordstrings)
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
@@ -151,7 +155,7 @@ def listen_print_loop(responses):
     the next result to overwrite it, until the response is a final one. For the
     final one, print a newline to preserve the finalized transcription.
     """
-    print("in loop!!!")
+
     num_chars_printed = 0
     for response in responses:
         if not response.results:
@@ -166,9 +170,7 @@ def listen_print_loop(responses):
 
         # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
-        last_recorded_phrase = transcript.lower()
-        last_recorded_phrase = last_recorded_phrase.encode("utf-8")
-        last_recorded_phrase = last_recorded_phrase.split()
+        last_recorded_phrase = ((transcript.lower()).encode("utf-8")).split()
         print (last_recorded_phrase)
         print (set(list_all_wordstrings))
 
@@ -177,15 +179,20 @@ def listen_print_loop(responses):
             overlap = set(last_recorded_phrase).intersection(set(list_all_wordstrings))
             overlap = list(overlap)
             print (overlap)
-            std_resp = "Sure,"
+            #std_resp = "Sure,"
             ind = 0
             while (ind < len(overlap)):
+                print ("ind: " + str(ind))
+                print (len(overlap))
                 std_resp = std_resp + " " + str(overlap[ind]) + " "
                 ind += 1
-                if (ind+1 < len(overlap)):
-                    std_resp += "and "
-                else:
-                    std_resp += ", "
+                print ("ind+1: " + str(ind+1))
+                # the following puts "and" between recognized terms if there are multiple, but that sounds worse than just listing them
+                # if (ind < len(overlap)):
+                #     std_resp += "and "
+                #else:
+                #    std_resp += ", "
+                std_resp += ", "
             print(std_resp)
 
 
