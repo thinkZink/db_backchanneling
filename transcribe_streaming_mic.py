@@ -171,29 +171,42 @@ def listen_print_loop(responses):
         # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
         last_recorded_phrase = ((transcript.lower()).encode("utf-8")).split()
-        print (last_recorded_phrase)
-        print (set(list_all_wordstrings))
+        print (last_recorded_phrase) #last utterance picked up, represented as a list term by term.
+        #print (set(list_all_wordstrings)) #all table keywords
 
         std_resp = ""
-        if (len(set(last_recorded_phrase).intersection(set(list_all_wordstrings)))):
+        if (len(set(last_recorded_phrase).intersection(set(list_all_wordstrings)))): #reelvant db words in utterance
             overlap = set(last_recorded_phrase).intersection(set(list_all_wordstrings))
             overlap = list(overlap)
             print (overlap)
+            dbselect = conn.cursor();
+            anded_terms = ''
+            for i in range(0, len(overlap)):
+                if (i is 0):
+                    anded_terms += "\'"
+                anded_terms += overlap[i]
+                if (i != len(overlap)-1):
+                    anded_terms += ' & '
+                else:
+                    anded_terms += "\'"
+            print ("SEARCHING CAR_TABLE VALUES FOR: " + anded_terms)
+            query_text = "SELECT * from cars_table where to_tsvector(cars_table::text) @@ to_tsquery(" + anded_terms + ");"
+            dbselect.execute(query_text)
+            filtered_res = dbselect.fetchall()
+            print (filtered_res)
+
             #std_resp = "Sure,"
             ind = 0
             while (ind < len(overlap)):
-                print ("ind: " + str(ind))
-                print (len(overlap))
                 std_resp = std_resp + " " + str(overlap[ind]) + " "
                 ind += 1
-                print ("ind+1: " + str(ind+1))
                 # the following puts "and" between recognized terms if there are multiple, but that sounds worse than just listing them
                 # if (ind < len(overlap)):
                 #     std_resp += "and "
                 #else:
                 #    std_resp += ", "
                 std_resp += ", "
-            print(std_resp)
+            #print("MOST RECENT UTTERANCE FEEDBACK TERMS IN BACKCHANNEL: " + std_resp)
 
 
 
@@ -261,7 +274,7 @@ def main():
             # Now, put the transcription responses to use.
             #while(True):
             prepend = listen_print_loop(responses)
-            print ("prepend: " + prepend)
+            print ("prepend to backchannel: " + prepend)
             utterance_index = random.randint(0, len(utterances)-1)
             utterance_choice += (" " + prepend + utterances[utterance_index])
             say(utterance_choice)
