@@ -69,13 +69,21 @@ for list_of_words in lists_of_tableline_words:
     list_all_words += list_of_words
 list_all_wordstrings = [str(i).lower() for i in list_all_words]
 list_all_wordstrings = list(set(list_all_wordstrings))
-#db_integers = [i for i in list_all_wordstrings if isinstance(i, int)]
+
+#num2words to get db terms ready for query matching, but apparently I'll have to do the costlier
+#per-query word2number instead. Stupid. Per-utterance processing is already very heavy->time-eating as-is.
 bad_num2word_integerstring = " point zero" #num2words attaches 'point zero' to integers....k. Dumb.
 for term_ind in range(0, len(list_all_wordstrings)):
     try: #found an integer in the db values that we want to turn into words instead
         int(list_all_wordstrings[term_ind])
-        num2words_rep = num2words(list_all_wordstrings[term_ind]).encode("utf-8")
-        list_all_wordstrings[term_ind] = num2words_rep[:num2words_rep.find(bad_num2word_integerstring)]
+        if (len(list_all_wordstrings[term_ind]) is 4):
+            num_as_str = list_all_wordstrings[term_ind]
+            list_all_wordstrings[term_ind] = num2words(int(list_all_wordstrings[term_ind]), to='year').encode("utf-8")
+            if (num_as_str[:2] == '19'):
+                list_all_wordstrings[term_ind] = list_all_wordstrings[term_ind].replace('hundred and ', '')
+        else:
+            num2words_rep = num2words(list_all_wordstrings[term_ind]).encode("utf-8")
+            list_all_wordstrings[term_ind] = num2words_rep[:num2words_rep.find(bad_num2word_integerstring)]
     except ValueError:
         continue
 print (list_all_wordstrings)
@@ -186,6 +194,8 @@ def listen_print_loop(responses, filter_words):
         #print (set(list_all_wordstrings)) #all table keywords
 
         std_resp = ""
+        #for term_ind in range(0, len(last_recorded_phrase)):
+
         if (len(set(last_recorded_phrase).intersection(set(list_all_wordstrings)))): #reelvant db words in utterance
             overlap = set(last_recorded_phrase).intersection(set(list_all_wordstrings))
             overlap = list(overlap)
