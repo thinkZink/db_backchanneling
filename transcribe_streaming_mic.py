@@ -73,20 +73,30 @@ list_all_wordstrings = list(set(list_all_wordstrings))
 #num2words to get db terms ready for query matching, but apparently I'll have to do the costlier
 #per-query word2number instead. Stupid. Per-utterance processing is already very heavy->time-eating as-is.
 bad_num2word_integerstring = " point zero" #num2words attaches 'point zero' to integers....k. Dumb.
+numbers_to_words_dict = {}
 for term_ind in range(0, len(list_all_wordstrings)):
     try: #found an integer in the db values that we want to turn into words instead
         int(list_all_wordstrings[term_ind])
         if (len(list_all_wordstrings[term_ind]) is 4):
             num_as_str = list_all_wordstrings[term_ind]
-            list_all_wordstrings[term_ind] = num2words(int(list_all_wordstrings[term_ind]), to='year').encode("utf-8")
+            wordrep = num2words(int(list_all_wordstrings[term_ind]), to='year').encode("utf-8")
+            numbers_to_words_dict[wordrep] = num_as_str
+            list_all_wordstrings[term_ind] = wordrep
             if (num_as_str[:2] == '19'):
-                list_all_wordstrings[term_ind] = list_all_wordstrings[term_ind].replace('hundred and ', '')
+                wordrep_19 = list_all_wordstrings[term_ind].replace('hundred and ', '')
+                list_all_wordstrings[term_ind] = wordrep_19
+                numbers_to_words_dict[wordrep_19] = num_as_str
+            list_all_wordstrings.append(num_as_str)
         else:
             num2words_rep = num2words(list_all_wordstrings[term_ind]).encode("utf-8")
+            num_as_str = list_all_wordstrings[term_ind]
             list_all_wordstrings[term_ind] = num2words_rep[:num2words_rep.find(bad_num2word_integerstring)]
+            numbers_to_words_dict[list_all_wordstrings[term_ind]] = num_as_str
+            list_all_wordstrings.append(num_as_str)
     except ValueError:
         continue
 print (list_all_wordstrings)
+print (numbers_to_words_dict)
 
 #put in some dummy words for now so I can keep using the same audio clip instead of car talk
 #list_all_wordstrings = ["maui", "president", "sanctuary", "island"]
@@ -190,11 +200,23 @@ def listen_print_loop(responses, filter_words):
         # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
         last_recorded_phrase = ((transcript.lower()).encode("utf-8")).split()
-        print (last_recorded_phrase) #last utterance picked up, represented as a list term by term.
+        #print (last_recorded_phrase) #last utterance picked up, represented as a list term by term.
+        print (type(str(transcript)))
+        for key in list(numbers_to_words_dict.keys()):
+            #print (key)
+            #print (numbers_to_words_dict[key])
+            #print (str(transcript))
+            print ((str(transcript)).find(key))
+            if not((str(transcript)).find(key) is -1):
+                print ("FOUND")
+                last_recorded_phrase.append(numbers_to_words_dict[key])
+                last_recorded_phrase.remove(key)
+        print (last_recorded_phrase)
         #print (set(list_all_wordstrings)) #all table keywords
 
         std_resp = ""
         #for term_ind in range(0, len(last_recorded_phrase)):
+
 
         if (len(set(last_recorded_phrase).intersection(set(list_all_wordstrings)))): #reelvant db words in utterance
             overlap = set(last_recorded_phrase).intersection(set(list_all_wordstrings))
