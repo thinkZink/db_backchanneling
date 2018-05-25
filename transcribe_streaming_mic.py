@@ -69,6 +69,16 @@ for list_of_words in lists_of_tableline_words:
     list_all_words += list_of_words
 list_all_wordstrings = [str(i).lower() for i in list_all_words]
 list_all_wordstrings = list(set(list_all_wordstrings))
+#db_integers = [i for i in list_all_wordstrings if isinstance(i, int)]
+bad_num2word_integerstring = " point zero" #num2words attaches 'point zero' to integers....k. Dumb.
+for term_ind in range(0, len(list_all_wordstrings)):
+    try: #found an integer in the db values that we want to turn into words instead
+        int(list_all_wordstrings[term_ind])
+        num2words_rep = num2words(list_all_wordstrings[term_ind]).encode("utf-8")
+        list_all_wordstrings[term_ind] = num2words_rep[:num2words_rep.find(bad_num2word_integerstring)]
+    except ValueError:
+        continue
+print (list_all_wordstrings)
 
 #put in some dummy words for now so I can keep using the same audio clip instead of car talk
 #list_all_wordstrings = ["maui", "president", "sanctuary", "island"]
