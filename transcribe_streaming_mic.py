@@ -140,7 +140,7 @@ class MicrophoneStream(object):
 # [END audio_stream]
 
 
-def listen_print_loop(responses):
+def listen_print_loop(responses, filter_words):
     """Iterates through server responses and prints them.
 
     The responses passed is a generator that will block until a response
@@ -155,6 +155,7 @@ def listen_print_loop(responses):
     the next result to overwrite it, until the response is a final one. For the
     final one, print a newline to preserve the finalized transcription.
     """
+    aggregated_filter_words = filter_words
 
     num_chars_printed = 0
     for response in responses:
@@ -190,7 +191,11 @@ def listen_print_loop(responses):
                 else:
                     anded_terms += "\'"
             print ("SEARCHING CAR_TABLE VALUES FOR: " + anded_terms)
-            query_text = "SELECT * from cars_table where to_tsvector(cars_table::text) @@ to_tsquery(" + anded_terms + ");"
+            if (aggregated_filter_words != ''):
+                aggregated_filter_words = aggregated_filter_words[:-1] + ' & ' + anded_terms[1:]
+            else:
+                aggregated_filter_words = anded_terms
+            query_text = "SELECT * from cars_table where to_tsvector(cars_table::text) @@ to_tsquery(" + aggregated_filter_words + ");"
             dbselect.execute(query_text)
             filtered_res = dbselect.fetchall()
             print (filtered_res)
@@ -235,7 +240,7 @@ def listen_print_loop(responses):
 
             num_chars_printed = 0
 
-    return std_resp
+    return (std_resp, aggregated_filter_words)
 
 def keyword_repeat(text):
     print (transcript)
@@ -261,6 +266,7 @@ def main():
         single_utterance=True,
         interim_results=False)
     i = 0
+    filtering_words = ''
     while (i < 7):
         with MicrophoneStream(RATE, CHUNK) as stream:
             utterance_choice = ""
@@ -273,7 +279,7 @@ def main():
 
             # Now, put the transcription responses to use.
             #while(True):
-            prepend = listen_print_loop(responses)
+            (prepend, filtering_words) = listen_print_loop(responses, filtering_words)
             print ("prepend to backchannel: " + prepend)
             utterance_index = random.randint(0, len(utterances)-1)
             utterance_choice += (" " + prepend + utterances[utterance_index])
